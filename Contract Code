@@ -1,0 +1,50 @@
+pragma solidity 0.4.16;
+
+contract OthaliaIndexSeedFund {
+
+  address public beneficiary;
+  uint public goal;
+  uint public deadline;
+
+  mapping (address => uint) funders;
+
+  address[] totalFundersArr;
+
+  event Contribution(uint _amount, uint _amountRemaining, uint _timestamp);
+
+  function OthaliaIndexSeedFund(address _beneficiary, uint _goal, uint _duration){
+      beneficiary = _beneficiary;
+      goal = _goal;
+      deadline  = now + _duration;
+  }
+
+  function currentFunding() constant returns (uint){
+      return this.balance;
+  }
+
+  function totalFunders() constant returns (uint){     return totalFundersArr.length;
+  }
+
+  function contribute() payable {
+      if(funders[msg.sender] == 0) totalFundersArr.push(msg.sender);
+      funders[msg.sender] += msg.value;
+      Contribution(msg.value, goal - this.balance, now);
+  }
+
+  function payout(){
+      require(now > deadline && this.balance >= goal);
+      beneficiary.transfer(this.balance);
+  }
+
+  function refund(){
+      require(now > deadline && this.balance < goal);
+      uint amountToSend = funders[msg.sender];
+      funders[msg.sender] = 0;
+      msg.sender.transfer(amountToSend);
+  }
+
+  function disable(){
+      require(this.balance != 0);
+      selfdestruct(beneficiary);
+  }
+}
